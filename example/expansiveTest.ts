@@ -1,8 +1,6 @@
-import { RouteParameters } from 'express-serve-static-core';
-import { UnknownIsOptional } from '../src/ts-utils';
-import { OnlyPathWithParams, OnlySimplePath, RouteMethod } from "../src/typeHelpers/helpers";
-import { FilterLayers, LData, RouterLayer } from "../src/typeHelpers/router";
+import { Routes } from "../src/typeHelpers/router";
 import { typedCheckSchema, typedExpress, TypedRouter } from "../src/wrappers";
+import { CallApi } from '../src/typeHelpers/client';
 
 const someRouter = () => TypedRouter()
   .get(
@@ -36,37 +34,16 @@ const higherRouter = () => TypedRouter()
 const app = () => typedExpress()
   .use('/nested', higherRouter())
 
-////////////////////////
-// Router typing stuff
-////////////////////////
+type AllRoutes = Routes<ReturnType<typeof app>>;
 
-type AllRoutes = ReturnType<typeof app>['stack'][number];
+/////////////////////
+// ↓ CLIENT SIDE ↓ //
+/////////////////////
 
-type FilterRoutes<M extends RouteMethod, P extends LData<FilterRoutes<M>>['path'] = any> =
-  FilterLayers<AllRoutes, RouterLayer<M, P>>;
-
-// type test = FilterRoutes<'post'>['_path'];
-// type testR = LData<FilterRoutes<'post', '/2-2/asdf'>>['path'];
-// type aaaaa = OnlySimplePath<test['_path']>;
-// type bbbbb = OnlyPathWithParams<test['_path']>;
-
-// todo: make this generic where you pass in your total RouterLayers union
-type CallMethod = <M extends RouteMethod, P extends LData<AllRoutes>['path'] & LData<FilterRoutes<M>>['path']>(
-  method: M,
-  path: P,
-  opts: UnknownIsOptional<{
-    params: RouteParameters<P>;
-    body: LData<FilterRoutes<M, P>>['reqBody'];
-    query: LData<FilterRoutes<M, P>>['reqQuery'];
-  }>
-) => Promise<LData<FilterRoutes<M, P>>['respBody']>;
-
-// todo: query typing / insert query and stuff.
-const call: CallMethod = (m, p, o) => {
+const call: CallApi<AllRoutes> = (m, p, o) => {
+  // todo: implementation / insert query and stuff.
   return Promise.resolve(null as any);
 };
-
-// type xoijwseo = UnknownIsOptional<{ params: { oiefjio: string; }; body: {}; query: unknown; }>
 
 // const a = call('get', '/1-1/woeiof/:oiefjio/oe', { oiefjio: 'iweo' });
 const a = call('get', '/nested/1-1/woeiof/:oiefjio/oe', {

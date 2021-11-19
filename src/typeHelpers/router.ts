@@ -31,7 +31,7 @@ export type LData<L extends RouterLayer> = L extends RouterLayer<infer M, infer 
   ? { method: M; path: P; respBody: RSB; reqBody: RQB; reqQuery: RQ; }
   : never;
 
-type Layers<RO extends ITypedRouter<any>> = RO extends ITypedRouter<infer L> ? L : never;
+export type Routes<RO extends ITypedRouter<any>> = RO extends ITypedRouter<infer L> ? L : never;
 
 /** Modify a (union of) RouterLayer(s) so that their path is prepended with a certain base path. */
 type PrependBasePathToLayers<
@@ -51,13 +51,13 @@ export type FilterLayers<T extends RouterLayer, F extends RouterLayer> = T exten
 interface ITypedUseHandler<TR extends ITypedRouter<any>> extends IRouterHandler<ITypedRouter> {
   <H extends RequestHandler[]>(...handlers: H):
     GetLast<H> extends ITypedRouter<infer L>
-    ? Omit<TR, keyof ITypedRouter> & ITypedRouter<Layers<TR> | L>
+    ? Omit<TR, keyof ITypedRouter> & ITypedRouter<Routes<TR> | L>
     : TR;
   <BP extends string, H extends RequestHandler[]>(
     basePath: BP,
     ...handlers: H
   ): GetLast<H> extends ITypedRouter<infer L>
-    ? Omit<TR, keyof ITypedRouter> & ITypedRouter<Layers<TR> | PrependBasePathToLayers<L, BP>>
+    ? Omit<TR, keyof ITypedRouter> & ITypedRouter<Routes<TR> | PrependBasePathToLayers<L, BP>>
     : TR;
 }
 
@@ -86,7 +86,7 @@ export interface ITypedRouterMatcher<
     ...handlers: H
   ): // todo: simply filter to get the last non-error handler that returned something sensible
   GetLast<H> extends AnonRequestHandler<infer R>
-    ? Omit<TR, keyof ITypedRouter> & ITypedRouter<Layers<TR> | RouterLayer<M, Route, GetBodyType<R>, ReqBody, ReqQuery>>
+    ? Omit<TR, keyof ITypedRouter> & ITypedRouter<Routes<TR> | RouterLayer<M, Route, GetBodyType<R>, ReqBody, ReqQuery>>
     : unknown;
   <
     Route extends string,
@@ -95,7 +95,7 @@ export interface ITypedRouterMatcher<
     path: Route,
     ...handlers: H
   ): GetLast<H> extends AnonRequestHandler<infer R>
-    ? Omit<TR, keyof ITypedRouter> & ITypedRouter<Layers<TR> | RouterLayer<M, Route, GetBodyType<R>>>
+    ? Omit<TR, keyof ITypedRouter> & ITypedRouter<Routes<TR> | RouterLayer<M, Route, GetBodyType<R>>>
     : unknown;
 }
 
