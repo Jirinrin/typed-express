@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
-import { IRouter, RequestHandler, IRouterHandler } from 'express';
+import { IRouter, RequestHandler, IRouterHandler, Express } from 'express';
 import { RouteParameters } from 'express-serve-static-core';
 import { GetLast, SimpleRecord, TypeSafeOmit } from '../ts-utils';
 import { AnonRequestHandler, GetBodyType, RouteMethod } from './helpers';
@@ -31,6 +31,8 @@ export type LData<L extends RouterLayer> = L extends RouterLayer<infer M, infer 
   ? { method: M; path: P; respBody: RSB; reqBody: RQB; reqQuery: RQ; }
   : never;
 
+type Layers<RO extends ITypedRouter<any>> = RO extends ITypedRouter<infer L> ? L : never;
+
 /** Modify a (union of) RouterLayer(s) so that their path is prepended with a certain base path. */
 type PrependBasePathToLayers<
   L extends RouterLayer,
@@ -46,16 +48,21 @@ export type FilterLayers<T extends RouterLayer, F extends RouterLayer> = T exten
  * (todo: docs)
  * todo: make this more potent by simply making it 'filter' the handlers that are a TypedRouter and put those to use
  */
-interface ITypedUseHandler<LL extends RouterLayer> extends IRouterHandler<ITypedRouter> {
+interface ITypedUseHandler<TR extends ITypedRouter<any>> extends IRouterHandler<ITypedRouter> {
+  <H extends RequestHandler[]>(...handlers: H):
+    GetLast<H> extends ITypedRouter<infer L>
+    ? Omit<TR, keyof ITypedRouter> & ITypedRouter<Layers<TR> | L>
+    : TR;
   <BP extends string, H extends RequestHandler[]>(
     basePath: BP,
     ...handlers: H
   ): GetLast<H> extends ITypedRouter<infer L>
-    ? ITypedRouter<LL | PrependBasePathToLayers<L, BP>>
-    : ITypedRouter<LL>;
+    ? Omit<TR, keyof ITypedRouter> & ITypedRouter<Layers<TR> | PrependBasePathToLayers<L, BP>>
+    : TR;
 }
 
-type TypedRequestHandlerParams<P = any, ReqBody = any, ReqQuery = any, Locals = SimpleRecord> =  // todo: support error request handlers, but now it's messing with the typing.
+// todo: support error request handlers, but now it's messing with the typing.
+type TypedRequestHandlerParams<P = any, ReqBody = any, ReqQuery = any, Locals = SimpleRecord> =
   | AnonRequestHandler<any, P, ReqBody, ReqQuery, Locals>
   // | ErrorRequestHandler<P, any, ReqBody, ReqQuery, Locals>
   | Array<AnonRequestHandler<any, P, ReqBody, ReqQuery, Locals>>;
@@ -63,7 +70,7 @@ type TypedRequestHandlerParams<P = any, ReqBody = any, ReqQuery = any, Locals = 
 
 // todo: a way to manually pass the type of the req (or even res) body for typescript
 export interface ITypedRouterMatcher<
-  LL extends RouterLayer,
+  TR extends ITypedRouter<any>,
   M extends RouteMethod,
   Locals = SimpleRecord
 > {
@@ -79,7 +86,7 @@ export interface ITypedRouterMatcher<
     ...handlers: H
   ): // todo: simply filter to get the last non-error handler that returned something sensible
   GetLast<H> extends AnonRequestHandler<infer R>
-    ? ITypedRouter<LL | RouterLayer<M, Route, GetBodyType<R>, ReqBody, ReqQuery>>
+    ? Omit<TR, keyof ITypedRouter> & ITypedRouter<Layers<TR> | RouterLayer<M, Route, GetBodyType<R>, ReqBody, ReqQuery>>
     : unknown;
   <
     Route extends string,
@@ -88,7 +95,7 @@ export interface ITypedRouterMatcher<
     path: Route,
     ...handlers: H
   ): GetLast<H> extends AnonRequestHandler<infer R>
-    ? ITypedRouter<LL | RouterLayer<M, Route, GetBodyType<R>>>
+    ? Omit<TR, keyof ITypedRouter> & ITypedRouter<Layers<TR> | RouterLayer<M, Route, GetBodyType<R>>>
     : unknown;
 }
 
@@ -96,13 +103,17 @@ export interface ITypedRouter<LL extends RouterLayer = never>
   extends RequestHandler,
     TypeSafeOmit<IRouter, RouteMethod | 'use'> {
   stack: LL[];
-  get: ITypedRouterMatcher<LL, 'get'>;
-  all: ITypedRouterMatcher<LL, 'all'>;
-  post: ITypedRouterMatcher<LL, 'post'>;
-  put: ITypedRouterMatcher<LL, 'put'>;
-  delete: ITypedRouterMatcher<LL, 'delete'>;
-  patch: ITypedRouterMatcher<LL, 'patch'>;
-  options: ITypedRouterMatcher<LL, 'options'>;
-  head: ITypedRouterMatcher<LL, 'head'>;
-  use: ITypedUseHandler<LL>;
+  get: ITypedRouterMatcher<this, 'get'>;
+  all: ITypedRouterMatcher<this, 'all'>;
+  post: ITypedRouterMatcher<this, 'post'>;
+  put: ITypedRouterMatcher<this, 'put'>;
+  delete: ITypedRouterMatcher<this, 'delete'>;
+  patch: ITypedRouterMatcher<this, 'patch'>;
+  options: ITypedRouterMatcher<this, 'options'>;
+  head: ITypedRouterMatcher<this, 'head'>;
+  use: ITypedUseHandler<this>;
 }
+
+type ExpressProperties = TypeSafeOmit<Express, keyof IRouter>;
+
+export type ITypedExpress = ITypedRouter & ExpressProperties;

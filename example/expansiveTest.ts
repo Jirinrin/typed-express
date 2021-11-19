@@ -33,14 +33,14 @@ const higherRouter = () => TypedRouter()
   .use('/1-1', someRouter())
   .use('/2-2', someRouter2());
 
-const app = typedExpress()
-  .use('/nested', higherRouter)
+const app = () => typedExpress()
+  .use('/nested', higherRouter())
 
 ////////////////////////
 // Router typing stuff
 ////////////////////////
 
-type AllRoutes = ReturnType<typeof higherRouter>['stack'][number];
+type AllRoutes = ReturnType<typeof app>['stack'][number];
 
 type FilterRoutes<M extends RouteMethod, P extends LData<FilterRoutes<M>>['path'] = any> =
   FilterLayers<AllRoutes, RouterLayer<M, P>>;
@@ -66,17 +66,17 @@ const call: CallMethod = (m, p, o) => {
   return Promise.resolve(null as any);
 };
 
-type xoijwseo = UnknownIsOptional<{ params: { oiefjio: string; }; body: {}; query: unknown; }>
+// type xoijwseo = UnknownIsOptional<{ params: { oiefjio: string; }; body: {}; query: unknown; }>
 
 // const a = call('get', '/1-1/woeiof/:oiefjio/oe', { oiefjio: 'iweo' });
-const a = call('get', '/1-1/woeiof/:oiefjio/oe', {
+const a = call('get', '/nested/1-1/woeiof/:oiefjio/oe', {
   params: {oiefjio: ''},
   // body: {},
   // query: {}
 });
-const b = call('post', '/2-2/asdf', {
-  // params: {oiefjio: ''},
-  body: {bla: ''},
-  query: {xx: ''}
+const b = call('post', '/nested/1-1/woeiof/:id/oe', {
+  params: {id: ''},
+  body: {blu: ''},
+  query: {yy: 34}
   // body: {}
 });

@@ -1,12 +1,13 @@
 import express, { RequestHandler, Router, RouterOptions } from "express";
 import { checkSchema, Schema } from "express-validator";
 import cloneDeep from "lodash.clonedeep";
-import { ITypedRouter, ITypedRouterMatcher } from "./typeHelpers/router";
+import { ITypedExpress, ITypedRouter, ITypedRouterMatcher } from "./typeHelpers/router";
 import { routeMethods } from "./typeHelpers/helpers";
 import { TypedValidationSchema } from "./typeHelpers/validation";
 
-export function typedExpress() {
-  return express();
+export function typedExpress(): ITypedExpress {
+  const e = express();
+  return cloneDeep(e) as unknown as ITypedExpress;
 }
 
 export function TypedRouter(options?: RouterOptions): ITypedRouter {
